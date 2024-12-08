@@ -1,0 +1,362 @@
+%OFDM simulation for Lab7
+%Steven Piper, Koby Miller
+
+
+%GO TO LINE 27
+%GO TO LINE 27
+%GO TO LINE 27
+%GO TO LINE 27
+%GO TO LINE 27
+%GO TO LINE 27
+%GO TO LINE 27
+
+%Base code provided by Dr. Belzer
+clear;
+
+%%%%
+%DO NOT TOUCH
+partb = 0; %Do not touch.
+partc = 1; %Do not touch. This is not an error.
+partd = 0; %Do not touch.
+parte = 0; %Do not touch.
+%DO NOT TOUCH
+%%%%
+
+
+
+% Start here. starting with the original code Koby and I made, run the
+% program, then copy the 2 stem plots, and the output of the console for the report.
+% After that, simply uncomment the next step, part B. screenshot/copy the
+% output, and put in report. IMPORTANT! Do not reccomment previous steps.
+% Simply just run, uncomment next partx line, run, uncomment next partx,
+% line, repeat.
+
+%when first ran, this will cover part A.
+%PART A)
+parta = 1; %Do not touch.
+
+
+%PART B)
+%partb = 1; %UNCOMMENT FOR PART B. DO NOT RECOMMENT!!!
+
+%PART C)
+%partc = 500000; %UNCOMMENT FOR PART C. DO NOT RECOMMENT THIS, OR PREVIOUS STEPS!!!
+
+%PART D)
+%partd = 1; %UNCOMMENT FOR PART D. DO NOT RECOMMENT THIS, OR PREVIOUS STEPS!!!
+
+%PART E)
+%parte = 1; %UNCOMMENT FOR PART E. DO NOT RECOMMENT THIS, OR PREVIOUS STEPS!!!
+
+%Done!
+
+%Note that channel 3 and 15 are 0, 95% of the time you run the program past
+%   part C. Note the stem plot in part a, that the highest gains are on
+%   channel 3 (n = 2 on plot) and channel  15 (n = 14 on plot). Explain in
+%   report.
+
+%%% All values that were modified from original matlab document
+%%% Do not uncomment.
+%---*---%---*---%---*---%---*---%---*---%---*---%---*---%---*---%---*---
+
+% identity = eye(N); %Added. Used for inverse.
+% Wi = (identity/W); 
+% he = [h zeros(1,N-length(h))];
+% H = W*he;
+% st = b;
+% st(st==0) = -1;
+% s = Wsi*st;
+% s = s.';
+% cpref = s((N-L+1):N); %new variable. Cyclic prefix.
+% s = cat(2,cpref,s);
+% w = sqrt(sigma2/2)*randn(size(zr)) + 1j*sqrt(sigma2/2)*randn(size(zr));
+% zrnL = zrn(L+1:end);
+% z = zrnL(1:N);
+% z = z.';
+% zt = Ws*z;
+% sthat = zt./(H + 1e-12); %the 1e-12 is to prevent div by 0.
+% sthat = sthat.';
+% sthatdec = sign(real(sthat));
+% bhat = sthatdec;
+% bhat(bhat==-1)=0;
+% errors = xor(b, bhat);
+% errors = errors + 0; %Adding 0 converts from logical to normal vector
+% cbers = cerrors/(N*n_txd_vectors);
+% snrs = abs(H).^2 / sigma2;
+% thbers = Q(sqrt(snrs));
+% ber_avg = mean(cbers);
+% nonzero_cbers = cbers(cbers > 0);
+% BER_ratio = max(nonzero_cbers)/min(nonzero_cbers);
+%---*---%---*---%---*---%---*---%---*---%---*---%---*---%---*---%---*---
+
+%clf;
+
+%Start of program
+
+format long e; %Use scientific notation number format
+sigma2 = .5; %Noise variance sigma2 = N0/2.
+N = 16; %Number of OFDM channels
+h = [1 0.8 0.4 -0.3 -0.5 -0.2 -0.1 0.07]; %Impulse response
+L = length(h) - 1; %Set L, the impulse response length - 1
+%Initialize the DFT matrices (see lecture notes and reading)
+WN = exp(-j*2*pi/N);
+Nrange = (0:N-1)';
+Wexponents = Nrange*Nrange'; %matrix of WN exponents
+W = WN.^Wexponents; %DFT forward transform
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Wi (eq 13.66b). Note that inverse simply is identity_mtrx/W
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+identity = eye(N); %identity matrix for inverse
+Wi = (identity/W); %DFT inverse transform (you don't actually need to compute the inverse)
+
+Ws = (1/sqrt(N))*W; %DFT forward transform scaled by 1/sqrt(N)
+Wsi = sqrt(N)*Wi; %DFT inverse scaled by sqrt(N)
+%Check the DFT matrices to make sure they multiply to the identity matrix
+round(W*Wi);
+round(Ws*Wsi);
+%Verify that matrices are equal to identity matrix.
+%remove ; to verify.
+isequal(round(W*Wi),identity); %returns 1 if good
+isequal(round(Ws*Wsi),identity); %returns 1 if good
+
+%%%%%%%%%%%%%
+%Previous sections CORRECT
+%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%he
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+he = [h zeros(1,N-length(h))]; %Extend h with extra 0s at end to be length N, calling result he
+%(Easiest by using vector concatenation and the zeros command)
+he = he.'; %Convert he from 1xN row vector to Nx1 column vector, using non-conjugate transpose
+
+%%%%%%%%%%%%%
+%Previous sections CORRECT
+%%%%%%%%%%%%%
+
+
+%Part a
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%H
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Compute channel frequency response H[n] using forward DFT matrix W and the he column vector
+H = W*he;
+
+
+
+%%%%%%%%%%%%%%%
+%Part a
+%Make stem plots of abs(H) and angle(H) vs. Nrange
+%%%%%%%%%%%%%%%
+if partb ~= 1
+figure(1);
+stem(Nrange,abs(H));
+title('Stem plot of |H[n]|')
+ylabel('|H[n]|');
+xlabel('n');
+figure(2);
+stem(Nrange,angle(H));
+title('Stem plot of angle')
+ylabel('angle(H[n])');
+xlabel('n');
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Start of parts b and c
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Initialize the cumulative channel error count matrix
+cerrors = zeros(1,N);
+% OFDM Lab Page 4 of 6
+%Initialize number of symbol vectors to transmit
+n_txd_vectors = partc; %For part c you'll set this to 500000
+%Loop to transmit the symbol vectors
+for k = (1:n_txd_vectors)
+%For part b:
+b = [1 0 0 0 0 1 1 1 1 0 1 0 0 1 1 0];
+
+
+% %Generate 16 random bits
+if partc == 500000
+b = rand(1,N) < 0.5;
+b = b+0; %stupid matlab. turns logical array into normal vector
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%st, st transpose, s, s transpose
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Shift the bits to BPSK symbols: 0 ---> -1, 1 ---> 1
+st = b;
+st(st==0) = -1;
+
+% %Convert st from 1xN row vector to Nx1 column vector (non-conjugate transpose)
+st = st.'; %need the ., as it's a non-conjugate. otherwise imag part gets transposed
+% %Take IDFT of st using scaled IDFT matrix Wsi
+s = Wsi*st;
+% %Convert s from column vector to row vector using non-conjugate transpose
+s = s.';
+
+%test s, to make sure cyclic prefix is correct
+%s=1:16
+
+% %Insert cyclic prefix into s per course notes/reading
+% %Make sure to insert the cyclic prefix at the START of s,
+% %so that the first L elements of s are s(N-L+1) to s(N)
+% %Easy to do this by matrix concatenation using brackets
+% %Type "help paren" for details. Type "help colon" to find
+% %out how to pick out selected parts of a vector.
+%create cpref (cyclic prefix)
+
+cpref = s((N-L+1):N);
+%either option one or two. Comment out incorrect one.
+%it could be the second one, since the zrnl supposedly cuts out cp. idk
+%s = cat(2,cpref,s(1:N-L)); %length of s = N = 16
+s = cat(2,cpref,s);         %length of s = N + L = 23
+
+
+% 
+% %Compute received vector zr by convolving h with s, using MATLAB conv
+% %command.
+zr = conv(s,h);
+%For part b:
+%w = zeros(size(zr));
+% %For part c: Uncomment and complete the line 6 lines below this one.
+% %Create complex Gaussian noise vector w with total variance sigma2, of same size as zr
+% %Make real and imaginary parts have variance sigma2
+% %Hints: 1) randn produces Gaussian r.v.s with 0 mean and variance 1
+% % 2) If A is a constant and X an r.v., then var(A*X) = A^2*var(X)
+%w = sigma2*randn(size(zr)) + j*sigma2*randn(size(zr)); %Uncomment and complete for Part c
+
+w = 0;
+if partc == 500000
+w = sqrt(sigma2/2)*randn(size(zr)) + 1j*sqrt(sigma2/2)*randn(size(zr));
+end
+
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %w
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %Add w to zr, producing zrn
+% 
+zrn = zr + w;
+% %OFDM Lab Page 5 of 6
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %zrnL, z, z, zt, sthat, sthatdec, bhat, errors
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %Remove cyclic prefix by removing first L samples from zrn, producing zrnL
+% %Hint: type "help colon" to find out how to pick out selected parts of a vector
+zrnL = zrn(L+1:end);
+
+% %Keep only first N elements of zrnL; call the result z
+z = zrnL(1:N);
+% %Convert z to column vector (non-conjugate transpose)
+z = z.';
+% %Take DFT of z using Ws
+zt = Ws*z;
+% %Divide zt by H[n] element by element (use ./)
+sthat = zt./(H + 1e-12); %divide by zero guard
+% %Convert sthat to row vector (non-conjugate transpose)
+sthat = sthat.';
+% %Decode elements of sthat to either -1 or +1 by comparing real part of sthat with 0
+% %Hint: Use the sign() function
+sthatdec = sign(real(sthat));
+% %Convert sthatdec into bhat by level shifting from -1->0, 1->1
+bhat = sthatdec;
+bhat(bhat==-1)=0;
+
+% %XOR b and bhat, using xor command, to produce an integer variable
+% %called errors, which has a 1 in each bit position that is in error.
+errors = xor(b, bhat);
+errors = errors + 0;
+% %Update the cumulative total errors in each channel in the cerrors vector
+% %by adding errors into cerrors
+cerrors = cerrors + errors;
+
+%Turn in st, s, zr, zrnL, z, zt, sthat, sthatdec, bhat, and errors
+end %end transmitted vectors loop
+
+% %End of part b
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%printouts for b. uncomment all inside. Make sure 87, n_tdx is 1 for part b
+% and also noise vector w = 0 for b.
+%%%%
+%st, s, zr, zrnL, z, zt, sthat, sthatdec, bhat, errors
+%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%cbers
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Compute experimental channel bit error rates for each channel in the cbers vector
+%cerrors = total number of bit errors per channel, with total bits N = 16
+%errors = number of errors in 1 channel (sum of this is total error)
+%sum(errors)/N = BER of 1 channel
+%so now for all channels, and iterated through n_txd_vectors times:
+cbers = cerrors/(N*n_txd_vectors);
+
+
+%Part (d)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%snrs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Compute SNRs for each subchannel per course notes, using H and sigma2
+%Note that these SNRs should be ratios, not in dB.
+snrs = abs(H).^2 / sigma2;
+%Part (e)
+%OFDM Lab Page 6 of 6
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%thbers
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Compute theoretical BERs (use BPSK formula); they should agree with cbers
+%r = Ac*m + X
+%X = gaussian zero mean RV with variance sigma2 = .5
+%if  X > Ac --->  X > 1: Error
+%Probability of this happening: Pe = Q(Ac / sigma)
+thbers = Q(sqrt(snrs));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%ber_avg
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Compute average experimental BER over all channels
+ber_avg = mean(cbers);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%BER_ratio
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Compute ratio of largest to smallest experimental channel BER
+%Hint: use max() and min() functions
+%need to handle values of 0:
+nonzero_cbers = cbers(cbers > 0);
+BER_ratio = max(nonzero_cbers)/min(nonzero_cbers);
+
+
+
+if (partb == 0) 
+    H
+end
+
+if (partb==1) && (partc == 1)
+    st = st.', s = s.', zrnL = zrnL.', z, zt, sthat = sthat.', sthatdec, bhat, errors
+end
+
+if (partc == 500000) && partd == 0 && parte == 0
+    disp('cerrors, cbers')
+    [cerrors.' cbers.']
+end
+
+if (partd == 1) && (parte == 0)
+    snrs
+end
+
+if parte == 1
+    disp('Cbers, thbers')
+    [cbers.' thbers], ber_avg, BER_ratio
+end
+
